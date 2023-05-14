@@ -6,17 +6,9 @@ import numpy as np
 from fancyimpute import IterativeImputer
 from datetime import datetime
 
-# # Function to generate the file list (This is not useful afterwards)
-# def get_file_path(path):
-#     import os
-#     file_list = []
-#     for file in os.listdir(path):
-#         file_list.append(os.path.join(path, file))
-#     print(file_list)
-#     return file_list
-
-
-# <1> Function to process "raw" noise data of 12 months
+# <1> Function to process "raw" noise data of 12 months in a folder. 
+    # <1> Example => 
+    # concatenate_files(r'D:\KUL2022\SS2022\Modern Data Analysis\Project\Data\Sound in Street\All sites original')
 def generate_new_file(file_path):
     import os
     import pandas as pd
@@ -59,8 +51,9 @@ def generate_new_file(file_path):
         new_df.to_csv(new_file_path, index=False)
 
 
-# <2> Function to cancatenate the files into one file
-# Apply get_file_list function to create the path
+# <2> Function to cancatenate the files in a folder into one file
+    # <2> Example => 
+    # concatenate_files(r'C:\Users\LIE\MDA Project\Sound in Street\All sites 10min\vrijthof')
 def concatenate_files(file_path):
     import os
     # Create a list of all the files in the directory
@@ -78,11 +71,14 @@ def concatenate_files(file_path):
     new_file_path = file_path+'\Cancatenated_File.csv'
     merged_df.to_csv(new_file_path, index=False)
 
-# Example => 
-# concatenate_files(r'C:\Users\LIE\MDA Project\Sound in Street\All sites 10min\vrijthof')
+
 
 
 # <3> Function to create a timestamp column to the concatenated file, then export
+    # <3> Example => 
+    # create_timestamp('2022-01-01 00:00', '2023-01-01 00:00', r'C:\Users\LIE\MDA Project\Sound in Street\All sites 10min')
+    # PS: the following line may raise an error message because I tried to assign multiple values to a single column
+    #df['datetime'] = df.apply(lambda x: datetime(x['year'], x['month'], x['day'], x['hour'], int(x['10min']-10)), axis=1)
 def  create_timestamp(min_time, max_time, file_path):
     import pandas as pd
     from datetime import datetime
@@ -122,10 +118,6 @@ def generate_new_file(file_path):
 
         # Convert 'result_timestamp' column to datetime format
         df['datetime'] = pd.to_datetime(df['datetime'], format='%Y-%m-%d %H:%M:%S')
-
-        # create new columns for year, month, day, hour, minute and weekday
-        # df['description'] = df['description']
-        # df['result_timestamp'] =  df['result_timestamp']
         df['year']  = df['datetime'].dt.year
         df['month'] = df['datetime'].dt.month
         df['day'] = df['datetime'].dt.day
