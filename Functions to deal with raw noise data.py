@@ -96,13 +96,14 @@ def  create_timestamp(min_time, max_time, file_path):
     # Read Files and merge the files with TimeFrame dataframe.
     for file in file_list:    
         df = pd.read_csv(file+'\Cancatenated_File.csv')
-        df['datetime'] = df.apply(lambda x: datetime(x['year'], x['month'], x['day'], x['hour'], int(x['10min']-10)), axis=1)
+        df['datetime'] = df.apply(lambda x: datetime(x['year'], x['month'], x['day'], x['hour'], int(x['10min'])), axis=1)
         merged_df = pd.merge(time_df, df, how='outer', on='datetime')
         new_file_path = file+'\Cancatenated_File_Timestamp.csv'        
         merged_df.to_csv(new_file_path, index=False)
 
 
 # <3-1> Function to add new time variables from timestamp (I used it after merging the averaged noise data with the 10 minute timestamp of 2022 )
+    # Results from this step can be found in <8_Sites of noise for imputation>, just in case we don't want to do imputation
 def generate_new_file(file_path):
     import os
     import pandas as pd
@@ -130,65 +131,58 @@ def generate_new_file(file_path):
         df.to_csv(new_file_path, index=False)
 
 
-# The following are not finished yet ******************************
-
-
 # <4> Function to apply Multivariate Imputation by Chained Equations Algorithm (MICE) to impute noise data
-    #So far it works with a single dataframe with at least the data in one column is almost complete.
-    #I think it will work much better after including the weather data for MICE
-def impute_file(file_path):
+    # Impute the noise data with also the values from weather variables after merging with the meteo dataset.
+    # The results from this step can be found in <8_Sites of noise imputed with weather ref>
+    
+# Example to run this function =>
+# file_path = r'C:\Users\LIE\MDA Project\Sound in Street\8_Sites of noise for imputation'
+# weatherFile = r'C:\Users\LIE\MDA Project\Weather\lc_2022_avgbyid_timecoverted.csv'
+# impute_2files(file_path, weatherFile)
+
+# A function to read 2 csv, join them, and do imputation
+def impute_2files(file_path, weatherFile):
     import os
     import pandas as pd
-    import numpy as np
+    from datetime import datetime
     from fancyimpute import IterativeImputer
 
-    file_list=[]
+    df_weather = pd.read_csv(weatherFile)
+    # Rename the column in df_weather to match the column name in df
+    df_weather = df_weather.rename(columns={'DATE_BRU': 'datetime'})
+    df_weather['datetime'] = df_weather['datetime'].str[:-6]
+    file_list = []
     for file in os.listdir(file_path):
         file_list.append(os.path.join(file_path, file))
     print(file_list)
-
-    # Read Files.
     for file in file_list:
-        df = pd.read_csv(file)    
+        df = pd.read_csv(file)
+        # Filter DataFrame based on 'year' and 'month'
+        merged_df = pd.merge(df, df_weather, on='datetime', how='inner')
+        
         # Create a copy of the data
-        df_imputer_mice = df.copy(deep=True)
-        # Check the missing value counts
+        df_imputer_mice = merged_df.copy(deep=True)
+        
+        # Check the missing value counts before imputation
         print(df_imputer_mice.isnull().sum())
-        # Specify the numerical columns to be imputed
-        numerical_cols = ['mean_lamax', 'mean_laeq', 'mean_lceq', 'mean_lcpeak']
+        
+        # Specify the numerical columns to be imputed: use also weather featurers
+        numerical_cols = ['mean_lamax', 'mean_laeq', 'mean_lceq', 'mean_lcpeak', 'LC_HUMIDITY', 'LC_DWPTEMP']
+
         # Create an object of IterativeImputer
         imputer_mice = IterativeImputer(max_iter=10)
+
         # Fit the imputer object to the data
         imputer_mice.fit(df_imputer_mice[numerical_cols])
+
         # Impute the missing values in the specified numerical columns
-        df_imputer_mice.loc[:, numerical_cols] = pd.DataFrame(imputer_mice.transform(df_imputer_mice[numerical_cols]), columns=numerical_cols)    
+        df_imputer_mice.loc[:, numerical_cols] = pd.DataFrame(imputer_mice.transform(df_imputer_mice[numerical_cols]), columns=numerical_cols)
+    
         # Check the missing value counts of imputed dataframe
         print(df_imputer_mice.isnull().sum())
-        # Export the imputed data to a csv file
-        new_file_path = file[:-4]+'_imputed.csv'
+        
+        #Export file
+        new_file_path = file[:-4]+'_weather_imputed.csv'
         df_imputer_mice.to_csv(new_file_path, index=False)
-
-# #Function to impute noise data (TEST)
-# def apply_mice(covariates, file_path):
-#     import os
-#     import pandas as pd
-#     import numpy as np
-#     from fancyimpute import IterativeImputer
-#     columns = [covariates]
-#     # Create a list of all the files in the directory
-#     file_list = []
-#     for file in os.listdir(file_path):
-#         file_list.append(os.path.join(file_path, file))
-#     # Read files 
-#     for file in file_list:
-#         df = pd.read_csv(file)
-#         df = df[columns]
-#         # Apply MICE
-#         mice = IterativeImputer(max_iter=10, random_state=0)
-#         df = pd.DataFrame(mice.fit_transform(df), columns=columns)
-#         # Export the files
-#         new_file_path = file+'\Cancatenated_File_Timestamp_MICE.csv'
-#         df.to_csv(new_file_path, index=False)
-
 
 
